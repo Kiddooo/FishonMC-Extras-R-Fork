@@ -46,6 +46,10 @@ public class EventHandler extends Handler {
         this.sendEventTrigger(EventTrigger.ON_XP_GAIN);
     }
 
+    public void onLocationChange() {
+        this.sendEventTrigger(EventTrigger.ON_LOCATION_CHANGE);
+    }
+
     public void onCrewJoin() {
         this.sendEventTrigger(EventTrigger.ON_CREW_JOIN);
     }

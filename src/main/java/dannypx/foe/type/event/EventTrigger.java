@@ -13,5 +13,6 @@ public enum EventTrigger {
     ON_PET_EQUIP,
     ON_PET_UNEQUIP,
     DEFAULT,
-    ON_XP_GAIN
+    ON_XP_GAIN,
+    ON_LOCATION_CHANGE
 }

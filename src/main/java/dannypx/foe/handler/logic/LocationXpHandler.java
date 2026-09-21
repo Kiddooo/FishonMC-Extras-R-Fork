@@ -159,11 +159,16 @@ public final class LocationXpHandler extends Handler {
          * The new location gets its own fresh server lookup.
          */
         if (!detectedLocation.equals(location)) {
+            String previousLocation = location;
             location = detectedLocation;
 
             stableTicks = 0;
             nextAttemptAt = 0;
             ready = false;
+
+            if (!previousLocation.isEmpty()) {
+                EventHandler.instance().onLocationChange();
+            }
         } else {
             stableTicks += 10;
         }
