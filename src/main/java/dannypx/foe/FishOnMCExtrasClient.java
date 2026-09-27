@@ -130,6 +130,7 @@ public class FishOnMCExtrasClient implements ClientModInitializer {
             CrewHandler.instance().init();
             XpHandler.instance().init();
             LocationXpHandler.instance().init();
+            EventTimesHandler.instance().init();
 
             DataFileHandler.instance().init();
             LoadingHandler.instance().init();
@@ -169,6 +170,7 @@ public class FishOnMCExtrasClient implements ClientModInitializer {
                 if(Configs.handlerConfig.lightHandler.get()) LightHandler.instance().tick();
                 if(Configs.handlerConfig.timerHandler.get()) TimerHandler.instance().tick();
                 if(Configs.handlerConfig.questHandler.get()) QuestHandler.instance().tick();
+                EventTimesHandler.instance().tick();
 
                 // Renderer
                 if(Configs.handlerConfig.hudRenderHandler.get()) HudRenderHandler.instance().tick();

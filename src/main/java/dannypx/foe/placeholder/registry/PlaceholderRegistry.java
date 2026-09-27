@@ -160,6 +160,15 @@ public class PlaceholderRegistry {
                         )
         );
 
+        register(node("event_times")
+                .branch(node("tackle_shop")
+                        .valueString(() -> EventTimesHandler.instance().getTackleShop())
+                        .description("Live /events countdown for Tackle Shop Restock."))
+                .branch(node("cosmetic_store")
+                        .valueString(() -> EventTimesHandler.instance().getCosmeticStore())
+                        .description("Live /events countdown for Cosmetic Store."))
+        );
+
         register(
                 node("inventory")
                         .branch(node("empty_slots").valueNumber(InventoryContext::getEmptySlots)
@@ -389,7 +398,18 @@ public class PlaceholderRegistry {
         );
 
         register(node("chat")
-                .branch(node("trigger").branch(nodeString().valueComponent(ChatContext::getStoredChatTrigger))
+                .branch(node("trigger")
+                        .branch(nodeString()
+                                .valueComponent(ChatContext::getStoredChatTrigger)
+                                .branch(node("group")
+                                        .branch(nodeIndex()
+                                                .valueComponent(ChatContext::getStoredChatTriggerGroup)
+                                                .allowEmpty())
+                                        .branch(nodeString()
+                                                .valueComponent(ChatContext::getStoredChatTriggerGroup)
+                                                .allowEmpty())
+                                )
+                        )
                         .description("Returns the last stored message from the specified chat trigger.")
                 )
         );
@@ -1910,6 +1930,9 @@ public class PlaceholderRegistry {
     static class ChatContext {
         static MutableComponent getStoredChatTrigger(List<String> indices) {
             return ChatHandler.instance().getStoredChatTriggerComponent().getOrDefault(indices.getFirst(), Component.empty()).copy();
+        }
+        static MutableComponent getStoredChatTriggerGroup(List<String> indices) {
+            return ChatHandler.instance().getStoredChatTriggerGroup(indices.getFirst(), indices.get(1)).copy();
         }
     }
 

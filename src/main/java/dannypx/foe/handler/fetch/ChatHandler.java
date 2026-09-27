@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
@@ -32,9 +32,14 @@ public class ChatHandler extends Handler {
 
     //region Fields
     private Map<String, Component> storedChatTriggerComponent = new HashMap<>();
+    private final Map<String, Map<String, Component>> storedChatTriggerGroups = new HashMap<>();
 
     public Map<String, Component> getStoredChatTriggerComponent() {
         return Collections.unmodifiableMap(storedChatTriggerComponent);
+    }
+
+    public Component getStoredChatTriggerGroup(String name, String group) {
+        return storedChatTriggerGroups.getOrDefault(name, Map.of()).getOrDefault(group, Component.empty());
     }
 
     final List<String> blacklistedMessageFilters = List.of(
@@ -51,12 +56,14 @@ public class ChatHandler extends Handler {
 
     public void initChatTrigger() {
         storedChatTriggerComponent.clear();
+        storedChatTriggerGroups.clear();
         CustomChatTriggerDataHandler.instance().getCustomChatTriggerData().chatTriggerList.forEach((name, trigger) -> {
             storedChatTriggerComponent.put(name, Component.empty());
         });
     }
 
     public void onReceiveMessage(Component component, boolean overlay) {
+        EventTimesHandler.instance().onChat(component, overlay);
         if(this.inBlackList(component)) return;
 
         XpHandler.instance().onGameMessage(component, overlay);
@@ -95,11 +102,22 @@ public class ChatHandler extends Handler {
     }
 
     private void checkChatTrigger(Component component) {
+        String message = component.getString();
         CustomChatTriggerDataHandler.instance().getCustomChatTriggerData().chatTriggerList.forEach((name, trigger) -> {
-            if(!trigger.getRegex().isBlank()
-                    && trigger.getPattern().matcher(component.getString()).matches()
-            ) {
+            if(trigger.getRegex().isBlank()) return;
+            Matcher matcher = trigger.getPattern().matcher(message);
+            if(matcher.matches()) {
                 storedChatTriggerComponent.put(name, component);
+                Map<String, Component> groups = new HashMap<>();
+                for (int i = 0; i <= matcher.groupCount(); i++) {
+                    int start = matcher.start(i);
+                    groups.put(Integer.toString(i), start < 0
+                            ? Component.empty()
+                            : TextHelper.substring(component, start, matcher.end(i)));
+                }
+                matcher.namedGroups().forEach((groupName, index) ->
+                        groups.put(groupName, groups.get(Integer.toString(index))));
+                storedChatTriggerGroups.put(name, groups);
                 if(trigger.getNotificationToTrigger() != null
                         && !trigger.getNotificationToTrigger().isBlank()
                         && trigger.isUseChatTrigger()
@@ -157,6 +175,7 @@ public class ChatHandler extends Handler {
             if(storedChatTriggerComponent.containsKey(chatTrigger.trim())) {
                 CodeExecuterHandler.runLater(2, () -> {
                     storedChatTriggerComponent.put(chatTrigger.trim(), Component.empty());
+                    storedChatTriggerGroups.remove(chatTrigger.trim());
                 });
             }
         }
