@@ -282,11 +282,6 @@ public class NotifierHandler extends Handler {
         this.persistentNotifications.put(IMPORT_CREW_KEY, importCrewUUID);
     }
 
-    public void notifyUpdate(Notification notification, String key) {
-        UUID notificationUUID = this.addNotification(notification);
-        this.persistentNotifications.put(key, notificationUUID);
-    }
-
     public void notifyImportStatsCompleted() {
         this.addNotification(
                 new Notification(1, 1,

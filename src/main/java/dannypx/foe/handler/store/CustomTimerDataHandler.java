@@ -82,7 +82,7 @@ public class CustomTimerDataHandler extends Handler {
         return customTimerData.timerList.remove(id);
     }
 
-    public void updateTimer(String currentSelectedTimer,
+    public CustomTimer updateTimer(String currentSelectedTimer,
                             String newName,
                             int timer,
                             int offset,
@@ -93,7 +93,7 @@ public class CustomTimerDataHandler extends Handler {
                             boolean useTimer,
                             boolean isPeriod
     ) {
-        updateTimer(currentSelectedTimer,
+        return updateTimer(currentSelectedTimer,
                 newName,
                 timer,
                 0,
@@ -110,7 +110,7 @@ public class CustomTimerDataHandler extends Handler {
         );
     }
 
-    public void updateTimer(String currentSelectedTimer,
+    public CustomTimer updateTimer(String currentSelectedTimer,
                             String newName,
                             int timer,
                             int offTimer,
@@ -147,6 +147,9 @@ public class CustomTimerDataHandler extends Handler {
             );
 
             customTimerData.timerList.put(currentSelectedTimer, newCustomTimerPeriod);
+            needsUpdate = true;
+
+            return newCustomTimerPeriod;
         } else {
             CustomTimer newCustomTimer = new CustomTimer(newName,
                     timer,
@@ -160,9 +163,10 @@ public class CustomTimerDataHandler extends Handler {
             );
 
             customTimerData.timerList.put(currentSelectedTimer, newCustomTimer);
-        }
+            needsUpdate = true;
 
-        needsUpdate = true;
+            return newCustomTimer;
+        }
     }
 
     public void updateDefault() {

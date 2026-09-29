@@ -44,6 +44,7 @@
 		"chat_trigger_version": 3,
 		"timer_version": 3,
 		"event_trigger_version": 2,
-		"tracker_version": 2
+		"tracker_version": 2,
+		"snippet_version": 1
 	}
 }

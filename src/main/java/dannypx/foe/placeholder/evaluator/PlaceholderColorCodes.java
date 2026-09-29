@@ -23,7 +23,7 @@ public class PlaceholderColorCodes {
                 if(c == '&' && i + 1 < text.length()) {
                     char next = text.charAt(i + 1);
 
-                    if(next == '#' && i + 8 <= text.length() && Tracker.isHex(text, i + 2)) {
+                    if(next == '#' && i + 8 <= text.length() && isHex(text, i + 2)) {
                         this.flush(result, segment);
                         int rgb = Integer.parseInt(text.substring(i + 2, i + 8), 16);
                         currentStyle = Style.EMPTY.withColor(TextColor.fromRgb(rgb));
@@ -80,13 +80,88 @@ public class PlaceholderColorCodes {
                 segment.setLength(0);
             }
         }
+    }
 
-        private static boolean isHex(String text, int start) {
-            if(start + 6 > text.length()) return false;
-            for (int i = 0; i < 6; i++) {
-                if(Character.digit(text.charAt(start + i), 16) == -1) return false;
-            }
-            return true;
+    private static boolean isHex(String text, int start) {
+        if(start + 6 > text.length()) return false;
+        for (int i = 0; i < 6; i++) {
+            if(Character.digit(text.charAt(start + i), 16) == -1) return false;
         }
+        return true;
+    }
+
+    public static MutableComponent applyFormat(String value) {
+        int i = 0;
+        Style styleToApply = Style.EMPTY;
+        MutableComponent result = Component.empty();
+
+        while(i < value.length()) {
+            char c = value.charAt(i);
+
+            if(c == '&' && i + 1 < value.length()) {
+                char next = value.charAt(i + 1);
+
+                if(next == '#' && i + 8 <= value.length() && isHex(value, i + 2)) {
+                    int rgb = Integer.parseInt(value.substring(i + 2, i + 8), 16);
+                    styleToApply = Style.EMPTY.withColor(TextColor.fromRgb(rgb));
+                    i += 8;
+                    continue;
+                }
+
+                ChatFormatting formatting = ChatFormatting.getByCode(next);
+                if(formatting != null) {
+                    if(formatting == ChatFormatting.RESET) {
+                        styleToApply = Style.EMPTY;
+                    } else if (formatting.isColor()) {
+                        styleToApply = Style.EMPTY.applyFormat(formatting);
+                    } else {
+                        styleToApply = styleToApply.applyFormat(formatting);
+                    }
+                    i += 2;
+                    continue;
+                }
+            } else {
+                result.append(Component.literal(String.valueOf(c)).setStyle(styleToApply));
+            }
+
+            i++;
+        }
+
+        return result;
+    }
+
+    public static MutableComponent applyFormat(String value, String format) {
+        int i = 0;
+        Style styleToApply = Style.EMPTY;
+
+        while(i < format.length()) {
+            char c = format.charAt(i);
+
+            if(c == '&' && i + 1 < format.length()) {
+                char next = format.charAt(i + 1);
+
+                if(next == '#' && i + 8 <= format.length() && isHex(format, i + 2)) {
+                    int rgb = Integer.parseInt(format.substring(i + 2, i + 8), 16);
+                    styleToApply = Style.EMPTY.withColor(TextColor.fromRgb(rgb));
+                    break;
+                }
+
+                ChatFormatting formatting = ChatFormatting.getByCode(next);
+                if(formatting != null) {
+                    if(formatting == ChatFormatting.RESET) {
+                        styleToApply = Style.EMPTY;
+                    } else if (formatting.isColor()) {
+                        styleToApply = Style.EMPTY.applyFormat(formatting);
+                    } else {
+                        styleToApply = styleToApply.applyFormat(formatting);
+                    }
+                    break;
+                }
+            }
+
+            i++;
+        }
+
+        return Component.empty().append(Component.literal(value).setStyle(styleToApply));
     }
 }

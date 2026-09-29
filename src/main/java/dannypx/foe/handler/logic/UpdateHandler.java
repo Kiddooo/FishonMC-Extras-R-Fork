@@ -28,16 +28,14 @@ public class UpdateHandler extends Handler {
     }
 
     //region Fields
-    public static final String V_0_3_8_KEY = "v038Key";
+    public static final Version v038 = Version.of("0.3.8");
+    public static final Version v039 = Version.of("0.3.9");
     //endregion
 
     //region Methods
     public static void checkUpdate() {
         Version before = Version.of(ProfileDataHandler.instance().getProfileData().modVersion);
         Version now = Version.of(FishOnMCExtras.VERSION);
-
-        Version v038 = Version.of("0.3.8");
-        Version v039 = Version.of("0.3.9");
 
         if(before.get() == null || now.compareTo(before) > 0) {
             // Put all update cycles here
@@ -57,26 +55,6 @@ public class UpdateHandler extends Handler {
         CustomTrackerDataHandler.instance().fixDefault();
         CustomHudDataHandler.instance().fixDefault();
         CustomChatNotificationDataHandler.instance().fixDefault();
-
-        NotifierHandler.instance().notifyUpdate(
-                new NotifierHandler.Notification(9, 1,
-                        new ArrayList<>(Arrays.asList(
-                                Component.literal("Update 0.3.8 changes how").withStyle(ChatFormatting.GOLD),
-                                Component.literal("placeholders work.").withStyle(ChatFormatting.GOLD),
-                                Component.literal("Due to this, default HUDs and").withStyle(ChatFormatting.GOLD),
-                                Component.literal("Trackers were reset to defaults.").withStyle(ChatFormatting.GOLD),
-                                Component.literal("All other custom HUDs, Trackers, ").withStyle(ChatFormatting.GOLD),
-                                Component.literal("etc. might need some update.").withStyle(ChatFormatting.GOLD),
-                                Component.empty(),
-                                TextHelper.concat(
-                                        Component.literal("Do "),
-                                        Component.literal("/foe update 0.3.8 confirm ").withStyle(ChatFormatting.GREEN)
-                                ),
-                                Component.literal("to confirm.")
-                        ))
-                ),
-                V_0_3_8_KEY
-        );
     }
 
     private static void updateToV039() {

@@ -152,22 +152,21 @@ public class ChatHandler extends Handler {
     }
 
     public String onModifyChatMessage(String text) {
-        AtomicReference<String> modified = new AtomicReference<>(text);
-        ConstantDataHandler.instance().getConstantData().fishData.forEach((category, fieldMap) -> {
-            fieldMap.forEach((stringField, textField) -> {
-                if(modified.get().contains(textField.getString().trim())) {
-                    modified.set(modified.get().replace(textField.getString().trim(), TextHelper.capitalize(stringField)));
-                }
+        if(ConnectionHandler.instance().isOnServer()) {
+            AtomicReference<String> modified = new AtomicReference<>(text);
+            ConstantDataHandler.instance().getConstantData().fishData.forEach((category, fieldMap) -> {
+                fieldMap.forEach((stringField, textField) -> {
+                    if(modified.get().contains(textField.getString().trim())) {
+                        modified.set(modified.get().replace(textField.getString().trim(), TextHelper.capitalize(stringField)));
+                    }
+                });
             });
-        });
 
-        modified.set(modified.get().replace("FoER » ", ""));
+            modified.set(modified.get().replace("FoER » ", ""));
 
-        return modified.get();
-    }
-
-    public Component onModifyGameMessage(Component component) {
-        return component;
+            return modified.get();
+        }
+        return text;
     }
 
     public void cleanChatTriggerStore(String[] chatTriggers) {

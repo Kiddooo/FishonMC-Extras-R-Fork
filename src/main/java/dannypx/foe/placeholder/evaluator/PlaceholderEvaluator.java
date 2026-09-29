@@ -16,6 +16,7 @@ public class PlaceholderEvaluator {
         List<String> errors = new ArrayList<>();
         MutableComponent combined = Component.empty();
         PlaceholderColorCodes.Tracker colorCodesTracker = new PlaceholderColorCodes.Tracker();
+        int[] emptyAllowedDepth = { 0 };
 
         for (Node child : group.children()) {
             if(child instanceof Literal(String text)) {
@@ -23,7 +24,7 @@ public class PlaceholderEvaluator {
             } else {
                 MutableComponent resolved;
                 try {
-                    resolved = this.evalNode(child, success, errors).toComponent();
+                    resolved = this.evalNode(child, success, errors, emptyAllowedDepth).toComponent();
                 } catch (RuntimeException e) {
                     success[0] = false;
                     String msg = "Unresolved error: " + e;
@@ -45,7 +46,7 @@ public class PlaceholderEvaluator {
         return this.eval(group).text().getString();
     }
 
-    private PlaceholderValue evalNode(Node node, boolean[] successAcc, List<String> errors) {
+    private PlaceholderValue evalNode(Node node, boolean[] successAcc, List<String> errors, int[] emptyAllowedDepth) {
         return switch (node) {
             case Literal l -> PlaceholderValue.text(l.text());
             case AstError e -> {
@@ -63,7 +64,7 @@ public class PlaceholderEvaluator {
                     yield this.trackedError("'" + treeNode.key() + "' " +  e.getMessage(), successAcc, errors);
                 }
 
-                if(!this.isSuccess(treeNode, result)) {
+                if(!this.isSuccess(treeNode, result, emptyAllowedDepth)) {
                     successAcc[0] = false;
                 }
 
@@ -75,8 +76,14 @@ public class PlaceholderEvaluator {
                 PlaceholderTreeNode treeNode = f.resolved();
                 List<PlaceholderValue> evaluatedArgs = new ArrayList<>(f.args().size());
 
-                for(Node argNode : f.args()) {
-                    evaluatedArgs.add(this.evalNode(argNode, successAcc, errors));
+                boolean opensEmptyContext = treeNode.allowsEmpty();
+                if(opensEmptyContext) emptyAllowedDepth[0]++;
+                try {
+                    for(Node argNode : f.args()) {
+                        evaluatedArgs.add(this.evalNode(argNode, successAcc, errors, emptyAllowedDepth));
+                    }
+                } finally {
+                    if(opensEmptyContext) emptyAllowedDepth[0]--;
                 }
 
                 PlaceholderValue result;
@@ -86,7 +93,7 @@ public class PlaceholderEvaluator {
                     yield this.trackedError("'" + treeNode.key() + "' " +  e.getMessage(), successAcc, errors);
                 }
 
-                if(!isSuccess(treeNode, result)) {
+                if(!isSuccess(treeNode, result, emptyAllowedDepth)) {
                     successAcc[0] = false;
                 }
 
@@ -95,28 +102,28 @@ public class PlaceholderEvaluator {
                 yield result.isNull() ? PlaceholderValue.text("") : result;
             }
             case BinaryOp b -> {
-                PlaceholderValue left = this.evalNode(b.left(), successAcc, errors);
-                PlaceholderValue right = this.evalNode(b.right(), successAcc, errors);
+                PlaceholderValue left = this.evalNode(b.left(), successAcc, errors, emptyAllowedDepth);
+                PlaceholderValue right = this.evalNode(b.right(), successAcc, errors, emptyAllowedDepth);
                 yield this.applyBinary(b.op(), left, right, successAcc, errors);
             }
             case UnaryOp u -> {
-                PlaceholderValue operand = this.evalNode(u.operand(), successAcc, errors);
+                PlaceholderValue operand = this.evalNode(u.operand(), successAcc, errors, emptyAllowedDepth);
                 yield this.applyUnary(u.op(), operand, successAcc, errors);
             }
             case Group g -> {
                 MutableComponent combined = Component.empty();
 
                 for(Node c : g.children()) {
-                    combined.append(this.evalNode(c, successAcc, errors).toComponent());
+                    combined.append(this.evalNode(c, successAcc, errors, emptyAllowedDepth).toComponent());
                 }
                 yield PlaceholderValue.component(combined);
             }
         };
     }
 
-    private boolean isSuccess(PlaceholderTreeNode node, PlaceholderValue result) {
+    private boolean isSuccess(PlaceholderTreeNode node, PlaceholderValue result, int[] emptyAllowedDepth) {
         if(result.isNull()) return false;
-        return !result.isEmpty() || node.allowsEmpty();
+        return !result.isEmpty() || node.allowsEmpty() || emptyAllowedDepth[0] > 0;
     }
 
     /// Binary/Unary evaluation

@@ -81,7 +81,7 @@ public class CustomEventTriggerDataHandler extends Handler {
         return customEventTriggerData.eventTriggerList.remove(id);
     }
 
-    public void updateEventTrigger(String currentSelectedEventTrigger,
+    public CustomEventTrigger updateEventTrigger(String currentSelectedEventTrigger,
                                    String newName,
                                    EventTrigger eventTrigger,
                                    String notificationToTrigger,
@@ -105,6 +105,8 @@ public class CustomEventTriggerDataHandler extends Handler {
 
         customEventTriggerData.eventTriggerList.put(currentSelectedEventTrigger, newEventTrigger);
         needsUpdate = true;
+
+        return newEventTrigger;
     }
 
     public void updateDefault() {

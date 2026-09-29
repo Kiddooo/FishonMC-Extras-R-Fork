@@ -2,6 +2,7 @@ package dannypx.foe.screens.widget;
 
 import dannypx.foe.handler.logic.CodeExecuterHandler;
 import dannypx.foe.handler.store.CustomNotificationDataHandler;
+import dannypx.foe.placeholder.editbox.PlaceholderEditBox;
 import dannypx.foe.screens.interfaces.ScreenConstants;
 import java.util.ArrayList;
 import java.util.List;
@@ -334,7 +335,7 @@ public class EditCustomNotificationWidget extends AbstractWidget implements Scre
     public static class LineEntry {
         Minecraft minecraftClient = Minecraft.getInstance();
 
-        private final EditBox editBoxWidget;
+        private final PlaceholderEditBox editBoxWidget;
         private final Button addButton;
         private final Button deleteButton;
 
@@ -349,7 +350,7 @@ public class EditCustomNotificationWidget extends AbstractWidget implements Scre
             lineString = defaultLine;
             this.width = width;
 
-            editBoxWidget = new EditBox(
+            editBoxWidget = new PlaceholderEditBox(
                     minecraftClient.font,
                     0, 0,
                     0, 20,

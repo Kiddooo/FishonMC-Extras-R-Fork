@@ -2,6 +2,7 @@ package dannypx.foe.screens.widget;
 
 import dannypx.foe.handler.logic.CodeExecuterHandler;
 import dannypx.foe.handler.store.CustomHudDataHandler;
+import dannypx.foe.placeholder.editbox.PlaceholderEditBox;
 import dannypx.foe.screens.interfaces.ScreenConstants;
 import java.util.ArrayList;
 import java.util.List;
@@ -284,6 +285,7 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
         );
 
         int startY = entryStartY - scrollOffset;
+        List<LineEntry> renderedEntries = new ArrayList<>();
 
         for (int i = 0; i < entries.size(); i++) {
             int entryY = startY + i * LineEntry.HEIGHT;
@@ -293,6 +295,7 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
             LineEntry entry = entries.get(i);
             entry.setPosition(getX() + PADDING, entryY, width - PADDING - PADDING - scrollbarWidth - PADDING);
             entry.render(guiGraphics, mouseX, mouseY, delta);
+            renderedEntries.add(entry);
         }
 
         int totalContentHeight = entries.size() * LineEntry.HEIGHT;
@@ -315,6 +318,10 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
         }
 
         guiGraphics.disableScissor();
+
+        for (LineEntry entry : renderedEntries) {
+            entry.renderSuggestions(guiGraphics, mouseX, mouseY);
+        }
     }
 
     @Override
@@ -455,7 +462,7 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
     public static class LineEntry {
         Minecraft minecraftClient = Minecraft.getInstance();
 
-        private final EditBox editBoxWidget;
+        private final PlaceholderEditBox editBoxWidget;
         private final Checkbox isCentreWidget;
         private final Checkbox isSmallWidget;
         private final Button addButton;
@@ -482,7 +489,7 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
             isSmall = defaultIsSmall;
             this.width = width;
 
-            editBoxWidget = new EditBox(
+            editBoxWidget = new PlaceholderEditBox(
                     minecraftClient.font,
                     0, 0,
                     0, 20,
@@ -500,7 +507,7 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
 
             editBoxWidget.setResponder(s -> {
                 lineString = s;
-                editBoxWidget.setHint(Component.literal(s));
+                // editBoxWidget.setHint(Component.literal(s));
             });
 
             isCentreWidget = Checkbox.builder(Component.literal(isCentreString), minecraftClient.font)
@@ -572,6 +579,10 @@ public class EditCustomHUDWidget extends AbstractWidget implements ScreenConstan
                     && editBoxWidget.isMouseOver(mouseX, mouseY)) {
                 guiGraphics.setTooltipForNextFrame(minecraftClient.font, Component.literal("You can also use placeholders. See wiki"), mouseX, mouseY);
             }
+        }
+
+        public void renderSuggestions(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+            editBoxWidget.renderSuggestions(guiGraphics, mouseX, mouseY);
         }
 
         public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubled) {

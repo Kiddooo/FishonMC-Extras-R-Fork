@@ -5,6 +5,7 @@ import dannypx.foe.placeholder.token.PlaceholderParseException;
 public class PlaceholderBalanceHelper {
     public static void checkBalanced(String source) {
         int count = 0;
+        boolean inQuotes = false;
         int i = 0;
 
         while(i < source.length()) {
@@ -15,8 +16,13 @@ public class PlaceholderBalanceHelper {
                 continue;
             }
 
-            if (c == '%') {
+            if(c == '"') {
+                inQuotes = !inQuotes;
+                i++;
+                continue;
+            }
 
+            if (c == '%' && !inQuotes) {
                 count++;
             }
             i++;

@@ -12,7 +12,7 @@ import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedString;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
-@Version(version = 3)
+@Version(version = 4)
 @RootConfig
 @Translatable.Name("FishOnExtras Rebirth")
 @IgnoreVisibility
@@ -27,7 +27,7 @@ public class MainConfig extends Config {
 
     @Name("Wiki URL")
     @Desc("§7The URL used for the wiki button")
-    public ValidatedString wikiPageUrl = new ValidatedString.Builder("https://github.com/FishOnExtras/FishonMC-Extras-R/wiki/Placeholders-0.3.8").withCorrector().build();
+    public ValidatedString wikiUrl = new ValidatedString.Builder("https://fishonextras.github.io/FishonMC-Extras-R-Wiki/").withCorrector().build();
 
     @Override
     public @NotNull FileType fileType() {

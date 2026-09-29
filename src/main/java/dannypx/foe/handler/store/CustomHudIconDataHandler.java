@@ -87,7 +87,7 @@ public class CustomHudIconDataHandler extends Handler {
         return customHudIconData.customHudIconDataList.remove(id);
     }
 
-    public void updateHudIcon(String currentSelectedHud, String newName, float scale, boolean showBackground, boolean showBars, boolean showElement, boolean useTrackerIcon, String icon, IconType iconType) {
+    public CustomHudIcon updateHudIcon(String currentSelectedHud, String newName, float scale, boolean showBackground, boolean showBars, boolean showElement, boolean useTrackerIcon, String icon, IconType iconType) {
         CustomHudIcon newHudIcon = customHudIconData.customHudIconDataList.get(currentSelectedHud);
 
         if(!Objects.equals(currentSelectedHud, newName)) {
@@ -105,6 +105,8 @@ public class CustomHudIconDataHandler extends Handler {
 
         customHudIconData.customHudIconDataList.put(currentSelectedHud, newHudIcon);
         needsUpdate = true;
+
+        return newHudIcon;
     }
 
     public void updateHudIcon(String currentSelectedHudIcon, int xPercent, int yPercent, Alignment alignment) {

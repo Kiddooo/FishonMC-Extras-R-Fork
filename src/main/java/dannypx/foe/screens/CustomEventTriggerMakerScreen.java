@@ -184,6 +184,7 @@ public class CustomEventTriggerMakerScreen extends Screen implements ScreenConst
         List<AbstractWidget> widgets = new ArrayList<>();
 
         widgets.add(this.saveBackButton());
+        widgets.add(this.saveButton());
         widgets.add(this.backButton());
 
         widgets.add(getButtonList());
@@ -494,59 +495,94 @@ public class CustomEventTriggerMakerScreen extends Screen implements ScreenConst
 
     private Button saveBackButton() {
         return Button.builder(Component.literal("Save and Return"), button -> {
-            if(selectedEventTriggerId != null) {
-                if(nameEditBox.getValue().isBlank()) {
-                    SystemToast.add(minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Event Trigger name is empty"));
-
-                    return;
-                }
-
-                if(!Objects.equals(selectedEventTriggerId, nameEditBox.getValue())
-                        && CustomEventTriggerDataHandler.instance().getCustomEventTriggerData().eventTriggerList.containsKey(nameEditBox.getValue())
-                ) {
-                    SystemToast.add(minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Event Trigger name already exist"));
-
-                    return;
-                }
-
-                if(Arrays.stream(EventTrigger.values()).noneMatch(eventTrigger ->
-                        eventTrigger.name().equals(eventEditBox.getValue())
-                )) {
-                    SystemToast.add(minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Event does not exist"));
-
-                    return;
-                }
-
-                CustomEventTriggerDataHandler.instance().updateEventTrigger(selectedEventTriggerId,
-                        nameEditBox.getValue(),
-                        EventTrigger.valueOf(eventEditBox.getValue()),
-                        notificationToTriggerEditBox.getValue(),
-                        chatNotificationToTriggerEditBox.getValue(),
-                        trackerToTriggerEditBox.getValue(),
-                        useEventTriggerCheckBox.selected());
-
+            if(this.save()) {
+                this.onClose();
             }
-                    this.onClose();
+        })
+        .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
+        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+        .build();
+    }
+
+    private boolean save() {
+        if(selectedEventTriggerId != null) {
+            if(nameEditBox.getValue().isBlank()) {
+                SystemToast.add(minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Event Trigger name is empty"));
+
+                return false;
+            }
+
+            if(!Objects.equals(selectedEventTriggerId, nameEditBox.getValue())
+                    && CustomEventTriggerDataHandler.instance().getCustomEventTriggerData().eventTriggerList.containsKey(nameEditBox.getValue())
+            ) {
+                SystemToast.add(minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Event Trigger name already exist"));
+
+                return false;
+            }
+
+            if(Arrays.stream(EventTrigger.values()).noneMatch(eventTrigger ->
+                    eventTrigger.name().equals(eventEditBox.getValue())
+            )) {
+                SystemToast.add(minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Event does not exist"));
+
+                return false;
+            }
+
+            CustomEventTriggerDataHandler.CustomEventTrigger eventTrigger = CustomEventTriggerDataHandler.instance().updateEventTrigger(selectedEventTriggerId,
+                    nameEditBox.getValue(),
+                    EventTrigger.valueOf(eventEditBox.getValue()),
+                    notificationToTriggerEditBox.getValue(),
+                    chatNotificationToTriggerEditBox.getValue(),
+                    trackerToTriggerEditBox.getValue(),
+                    useEventTriggerCheckBox.selected());
+
+            ButtonListWidget.ButtonEntry entry = buttonEntryMap.remove(selectedEventTriggerId);
+            int index = buttonList.entryAt(entry);
+            buttonList.removeEntry(entry);
+
+            selectedEventTrigger = eventTrigger;
+            selectedEventTriggerId = nameEditBox.getValue();
+            this.header = Component.literal(selectedEventTriggerId);
+
+            ButtonListWidget.ButtonEntry buttonEntry = createEventTriggerEntry(selectedEventTriggerId);
+            buttonEntryMap.put(selectedEventTriggerId, buttonEntry);
+            buttonList.addEntryAtPos(buttonEntry, index);
+            buttonList.setSelected(buttonEntry);
+
+            return true;
+        }
+        return false;
+    }
+
+    private Button saveButton() {
+        return Button.builder(Component.literal("Save"), button -> {
+                    if(this.save()) {
+                        SystemToast.add(this.minecraft.getToastManager(),
+                                SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                                Component.literal("Event trigger saved"),
+                                Component.literal(selectedEventTriggerId));
+                    }
                 })
-                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4), height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.literal("Can also use Ctrl+S")))
                 .build();
     }
 
     private Button backButton() {
         return Button.builder(Component.literal("Return"), button ->
-                    this.onClose())
-                .pos(width - (PADDING_HALF + BUTTON_WIDTH / 2) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                        this.onClose())
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
                 .build();
     }
 
@@ -634,6 +670,16 @@ public class CustomEventTriggerMakerScreen extends Screen implements ScreenConst
                     return true;
                 }
             }
+        }
+
+        if(keyEvent.hasControlDown() && keyEvent.key() == GLFW.GLFW_KEY_S) {
+            if(this.save()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Event trigger saved"),
+                        Component.literal(selectedEventTriggerId));
+            }
+            return true;
         }
 
         return super.keyPressed(keyEvent);

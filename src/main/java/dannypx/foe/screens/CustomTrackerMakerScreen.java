@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import dannypx.foe.FishOnMCExtras;
 import dannypx.foe.config.Configs;
 import dannypx.foe.handler.logic.LoggerHandler;
+import dannypx.foe.handler.store.CustomHudDataHandler;
 import dannypx.foe.handler.store.CustomTrackerDataHandler;
 import dannypx.foe.helper.ItemStackHelper;
 import dannypx.foe.helper.TextHelper;
@@ -25,10 +26,12 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,7 +44,7 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
     private ButtonListWidget buttonList;
     private EditCustomTrackerWidget editCustomTrackerWidget;
     private Map<String, ButtonListWidget.ButtonEntry> buttonEntryMap = new HashMap<>();
-    private String selectedTracker;
+    private String selectedTrackerId;
     //endregion
 
     //region Methods
@@ -67,6 +70,7 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
         List<AbstractWidget> widgets = new ArrayList<>();
 
         widgets.add(this.saveBackButton());
+        widgets.add(this.saveButton());
         widgets.add(this.backButton());
         widgets.add(this.addLine());
 
@@ -118,14 +122,14 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
                         Component.literal("Delete Selected"),
                         (button) -> {
                             if(editCustomTrackerWidget.hasSelectedOption) {
-                                CustomTrackerDataHandler.instance().deleteCustomTracker(selectedTracker);
+                                CustomTrackerDataHandler.instance().deleteCustomTracker(selectedTrackerId);
                                 editCustomTrackerWidget.reset();
-                                ButtonListWidget.ButtonEntry entry = buttonEntryMap.get(selectedTracker);
+                                ButtonListWidget.ButtonEntry entry = buttonEntryMap.get(selectedTrackerId);
 
                                 buttonList.removeEntry(entry);
-                                buttonEntryMap.remove(selectedTracker);
+                                buttonEntryMap.remove(selectedTrackerId);
 
-                                selectedTracker = null;
+                                selectedTrackerId = null;
                             }
                         })
                 .size(BUTTON_WIDTH / 2 - PADDING_HALF, BUTTON_HEIGHT)
@@ -203,7 +207,7 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
                                             )
                                     );
 
-                                    String dataToCopy = "**Custom Tracker: **" + selectedTracker + "\n" +
+                                    String dataToCopy = "**Custom Tracker: **" + selectedTrackerId + "\n" +
                                             "```\n" +
                                             rawData + "\n" +
                                             "```\n" +
@@ -257,7 +261,7 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
                 Button.builder(
                         Component.literal(id),
                         button -> {
-                            selectedTracker = id;
+                            selectedTrackerId = id;
                             editCustomTrackerWidget.selectTracker(
                                     id,
                                     CustomTrackerDataHandler.instance().getCustomTrackerData().trackerList.get(id));
@@ -268,194 +272,230 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
 
     private Button saveBackButton() {
         return Button.builder(Component.literal("Save and Return"), button -> {
-                    if(editCustomTrackerWidget.hasSelectedOption) {
-                        if(editCustomTrackerWidget.idName.isBlank()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Tracker name is empty"));
+            if(this.save()) {
+                this.onClose();
+            }
+        })
+        .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
+        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+        .build();
+    }
 
-                            return;
-                        }
+    private boolean save() {
+        if(editCustomTrackerWidget.hasSelectedOption) {
+            if(editCustomTrackerWidget.idName.isBlank()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Tracker name is empty"));
 
-                        if(!Objects.equals(editCustomTrackerWidget.currentSelectedTracker, editCustomTrackerWidget.idName)
-                                && CustomTrackerDataHandler.instance().getCustomTrackerData().trackerList.containsKey(editCustomTrackerWidget.idName)
-                        ) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Tracker name already exist"));
+                return false;
+            }
 
-                            return;
-                        }
+            if(!Objects.equals(editCustomTrackerWidget.currentSelectedTracker, editCustomTrackerWidget.idName)
+                    && CustomTrackerDataHandler.instance().getCustomTrackerData().trackerList.containsKey(editCustomTrackerWidget.idName)
+            ) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Tracker name already exist"));
 
-                        TrackerValue defaultValue = null;
-                        AtomicBoolean couldParse = new AtomicBoolean(false);
+                return false;
+            }
 
-                        if("true".equals(editCustomTrackerWidget.defaultValue) || "false".equals(editCustomTrackerWidget.defaultValue)) {
-                            defaultValue = BooleanValue.of(Boolean.parseBoolean(editCustomTrackerWidget.defaultValue));
-                            couldParse.set(true);
-                        }
+            TrackerValue defaultValue = null;
+            AtomicBoolean couldParse = new AtomicBoolean(false);
 
-                        try {
-                            float parsed = Float.parseFloat(editCustomTrackerWidget.defaultValue);
-                            defaultValue = new NumberValue(parsed);
-                            couldParse.set(true);
-                        } catch (Exception ignored) {}
+            if("true".equals(editCustomTrackerWidget.defaultValue) || "false".equals(editCustomTrackerWidget.defaultValue)) {
+                defaultValue = BooleanValue.of(Boolean.parseBoolean(editCustomTrackerWidget.defaultValue));
+                couldParse.set(true);
+            }
 
-                        if(editCustomTrackerWidget.trackerType == TrackerType.ITEMSTACK
-                                && editCustomTrackerWidget.defaultValue.isBlank()
-                        ) {
-                            defaultValue = EmptyValue.getDefault();
-                            couldParse.set(true);
-                        }
+            try {
+                float parsed = Float.parseFloat(editCustomTrackerWidget.defaultValue);
+                defaultValue = new NumberValue(parsed);
+                couldParse.set(true);
+            } catch (Exception ignored) {}
 
-                        if(!couldParse.get()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Default value is not correct format"));
+            if(editCustomTrackerWidget.trackerType == TrackerType.ITEMSTACK
+                    && editCustomTrackerWidget.defaultValue.isBlank()
+            ) {
+                defaultValue = EmptyValue.getDefault();
+                couldParse.set(true);
+            }
 
-                            return;
-                        }
+            if(!couldParse.get()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Default value is not correct format"));
 
-                        AtomicBoolean actionIdIsNotEmpty = new AtomicBoolean(true);
-                        AtomicBoolean trackerActionIsNotEmpty = new AtomicBoolean(true);
-                        AtomicBoolean couldParseValueToUse = new AtomicBoolean(false);
-                        AtomicBoolean couldParseTrackerAction = new AtomicBoolean(true);
-                        editCustomTrackerWidget.getEntries().forEach(lineEntry -> {
-                            if(lineEntry.actionId.isEmpty()) actionIdIsNotEmpty.set(false);
+                return false;
+            }
 
-                            if(lineEntry.trackerAction.isEmpty()) trackerActionIsNotEmpty.set(false);
+            AtomicBoolean actionIdIsNotEmpty = new AtomicBoolean(true);
+            AtomicBoolean trackerActionIsNotEmpty = new AtomicBoolean(true);
+            AtomicBoolean couldParseValueToUse = new AtomicBoolean(false);
+            AtomicBoolean couldParseTrackerAction = new AtomicBoolean(true);
+            editCustomTrackerWidget.getEntries().forEach(lineEntry -> {
+                if(lineEntry.actionId.isEmpty()) actionIdIsNotEmpty.set(false);
 
-                            if("true".equals(lineEntry.valueToUse) || "false".equals(lineEntry.valueToUse)) {
-                                couldParseValueToUse.set(true);
-                            }
+                if(lineEntry.trackerAction.isEmpty()) trackerActionIsNotEmpty.set(false);
 
-                            try {
-                                Float.parseFloat(lineEntry.valueToUse);
-                                couldParseValueToUse.set(true);
-                            } catch (Exception ignored) {}
+                if("true".equals(lineEntry.valueToUse) || "false".equals(lineEntry.valueToUse)) {
+                    couldParseValueToUse.set(true);
+                }
 
-                            if(lineEntry.valueToUse.startsWith("%") || lineEntry.valueToUse.endsWith("%")) {
-                                couldParseValueToUse.set(true);
-                            }
+                try {
+                    Float.parseFloat(lineEntry.valueToUse);
+                    couldParseValueToUse.set(true);
+                } catch (Exception ignored) {}
 
-                            if(lineEntry.valueToUse.isEmpty()) {
-                                couldParseValueToUse.set(true);
-                            }
+                if(lineEntry.valueToUse.startsWith("%") || lineEntry.valueToUse.endsWith("%")) {
+                    couldParseValueToUse.set(true);
+                }
 
-                            ItemStack itemStack = ItemStackHelper.valueOf(lineEntry.valueToUse);
-                            if(!itemStack.isEmpty()) {
-                                couldParseValueToUse.set(true);
-                            }
+                if(lineEntry.valueToUse.isEmpty()) {
+                    couldParseValueToUse.set(true);
+                }
 
-                            try {
-                                TrackerAction action = TrackerAction.valueOf(lineEntry.trackerAction);
-                                if(!TrackerAction.getActions(editCustomTrackerWidget.trackerType).contains(action)) {
-                                    couldParseTrackerAction.set(false);
-                                }
-                            } catch (Exception e) {
-                                LoggerHandler.error(e);
-                                couldParseTrackerAction.set(false);
-                            }
-                        });
+                ItemStack itemStack = ItemStackHelper.valueOf(lineEntry.valueToUse);
+                if(!itemStack.isEmpty()) {
+                    couldParseValueToUse.set(true);
+                }
 
-                        if(!couldParseValueToUse.get()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Value to use is not correct format"));
-
-                            return;
-                        }
-
-                        if(!couldParseTrackerAction.get()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Tracker action does not exist"));
-
-                            return;
-                        }
-
-                        if(!actionIdIsNotEmpty.get()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("An Action ID is empty"));
-
-                            return;
-                        }
-
-                        if(!trackerActionIsNotEmpty.get()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("An Tracker Action is empty"));
-
-                            return;
-                        }
-
-                        Set<String> uniqueActionIds = editCustomTrackerWidget.getEntries().stream()
-                                .map(EditCustomTrackerWidget.LineEntry::getActionId)
-                                .collect(Collectors.toSet());
-
-                        if(uniqueActionIds.size() != editCustomTrackerWidget.getEntries().size()) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Action IDs are not unique"));
-
-                            return;
-                        }
-
-                        if(defaultValue == null) {
-                            SystemToast.add(this.minecraft.getToastManager(),
-                                    SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                                    Component.literal("Fish On Extras Rebirth"),
-                                    Component.literal("Error at Default Value"));
-
-                            return;
-                        }
-
-                        CustomTrackerDataHandler.instance().updateTracker(
-                                editCustomTrackerWidget.currentSelectedTracker,
-                                editCustomTrackerWidget.idName,
-                                editCustomTrackerWidget.trackerType,
-                                defaultValue,
-                                defaultValue,
-                                editCustomTrackerWidget.isPersistent,
-                                editCustomTrackerWidget.useTracker,
-                                editCustomTrackerWidget.getEntries().stream().map(lineEntry -> Pair.of(lineEntry.actionId, Triplet.of(
-                                        TrackerAction.valueOf(lineEntry.trackerAction),
-                                        lineEntry.condition,
-                                        !lineEntry.valueToUse.isEmpty() ? switch (editCustomTrackerWidget.trackerType) {
-                                            case BOOLEAN -> (lineEntry.valueToUse.startsWith("%") && lineEntry.valueToUse.endsWith("%"))
-                                                            ? PlaceholderStringValue.of(lineEntry.valueToUse)
-                                                            : BooleanValue.of(Boolean.parseBoolean(lineEntry.valueToUse));
-                                            case INTEGER -> (lineEntry.valueToUse.startsWith("%") && lineEntry.valueToUse.endsWith("%"))
-                                                            ? PlaceholderStringValue.of(lineEntry.valueToUse)
-                                                            : NumberValue.of(Float.parseFloat(lineEntry.valueToUse));
-                                            case ITEMSTACK -> (lineEntry.valueToUse.startsWith("%") && lineEntry.valueToUse.endsWith("%"))
-                                                              ? PlaceholderStringValue.of(lineEntry.valueToUse)
-                                                              : ItemStackValue.of(lineEntry.valueToUse);
-                                        } : EmptyValue.getDefault()
-                                ))).collect(Collectors.toMap(Pair::value1, Pair::value2))
-                        );
+                try {
+                    TrackerAction action = TrackerAction.valueOf(lineEntry.trackerAction);
+                    if(!TrackerAction.getActions(editCustomTrackerWidget.trackerType).contains(action)) {
+                        couldParseTrackerAction.set(false);
                     }
-                    this.onClose();
+                } catch (Exception e) {
+                    LoggerHandler.error(e);
+                    couldParseTrackerAction.set(false);
+                }
+            });
+
+            if(!couldParseValueToUse.get()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Value to use is not correct format"));
+
+                return false;
+            }
+
+            if(!couldParseTrackerAction.get()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Tracker action does not exist"));
+
+                return false;
+            }
+
+            if(!actionIdIsNotEmpty.get()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("An Action ID is empty"));
+
+                return false;
+            }
+
+            if(!trackerActionIsNotEmpty.get()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("An Tracker Action is empty"));
+
+                return false;
+            }
+
+            Set<String> uniqueActionIds = editCustomTrackerWidget.getEntries().stream()
+                    .map(EditCustomTrackerWidget.LineEntry::getActionId)
+                    .collect(Collectors.toSet());
+
+            if(uniqueActionIds.size() != editCustomTrackerWidget.getEntries().size()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Action IDs are not unique"));
+
+                return false;
+            }
+
+            if(defaultValue == null) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Error at Default Value"));
+
+                return false;
+            }
+
+            CustomTrackerDataHandler.instance().updateTracker(
+                    editCustomTrackerWidget.currentSelectedTracker,
+                    editCustomTrackerWidget.idName,
+                    editCustomTrackerWidget.trackerType,
+                    defaultValue,
+                    defaultValue,
+                    editCustomTrackerWidget.isPersistent,
+                    editCustomTrackerWidget.useTracker,
+                    editCustomTrackerWidget.getEntries().stream().map(lineEntry -> Pair.of(lineEntry.actionId, Triplet.of(
+                            TrackerAction.valueOf(lineEntry.trackerAction),
+                            lineEntry.condition,
+                            !lineEntry.valueToUse.isEmpty() ? switch (editCustomTrackerWidget.trackerType) {
+                                case BOOLEAN -> (lineEntry.valueToUse.startsWith("%") && lineEntry.valueToUse.endsWith("%"))
+                                        ? PlaceholderStringValue.of(lineEntry.valueToUse)
+                                        : BooleanValue.of(Boolean.parseBoolean(lineEntry.valueToUse));
+                                case INTEGER -> (lineEntry.valueToUse.startsWith("%") && lineEntry.valueToUse.endsWith("%"))
+                                        ? PlaceholderStringValue.of(lineEntry.valueToUse)
+                                        : NumberValue.of(Float.parseFloat(lineEntry.valueToUse));
+                                case ITEMSTACK -> (lineEntry.valueToUse.startsWith("%") && lineEntry.valueToUse.endsWith("%"))
+                                        ? PlaceholderStringValue.of(lineEntry.valueToUse)
+                                        : ItemStackValue.of(lineEntry.valueToUse);
+                            } : EmptyValue.getDefault()
+                    ))).collect(Collectors.toMap(Pair::value1, Pair::value2))
+            );
+
+            ButtonListWidget.ButtonEntry entry = buttonEntryMap.remove(selectedTrackerId);
+            int index = buttonList.entryAt(entry);
+            buttonList.removeEntry(entry);
+
+            selectedTrackerId = editCustomTrackerWidget.idName;
+
+            ButtonListWidget.ButtonEntry buttonEntry = createTrackerEntry(selectedTrackerId);
+            buttonEntryMap.put(selectedTrackerId, buttonEntry);
+            buttonList.addEntryAtPos(buttonEntry, index);
+            buttonList.setSelected(buttonEntry);
+
+            editCustomTrackerWidget.selectTracker(selectedTrackerId, CustomTrackerDataHandler.instance().getCustomTrackerData().trackerList.get(selectedTrackerId));
+
+            return true;
+        }
+        return false;
+    }
+
+    private Button saveButton() {
+        return Button.builder(Component.literal("Save"), button -> {
+                    if(this.save()) {
+                        SystemToast.add(this.minecraft.getToastManager(),
+                                SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                                Component.literal("Tracker saved"),
+                                Component.literal(selectedTrackerId));
+                    }
                 })
-                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4), height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.literal("Can also use Ctrl+S")))
                 .build();
     }
 
     private Button backButton() {
         return Button.builder(Component.literal("Return"), button ->
-                    this.onClose())
-                .pos(width - (PADDING_HALF + BUTTON_WIDTH / 2) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                        this.onClose())
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
                 .build();
     }
 
@@ -466,14 +506,14 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
                     }
                 })
                 .pos(PADDING_HALF + (BUTTON_WIDTH + PADDING * 2), height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
                 .tooltip(Tooltip.create(Component.literal("Add line to the bottom")))
                 .build();
     }
 
     private AbstractWidget wikiButton() {
         return Button.builder(Component.literal("Wiki"), button -> {
-                    String url = Configs.mainConfig.wikiPageUrl.get();
+                    String url = Configs.mainConfig.wikiUrl.get();
 
                     this.minecraft.setScreen(new ConfirmLinkScreen((confirmed) -> {
                         if (confirmed) {
@@ -483,10 +523,24 @@ public class CustomTrackerMakerScreen extends Screen implements ScreenConstants 
                         this.minecraft.setScreen(null);
                     }, url, true));
                 })
-                .pos(PADDING_HALF + (BUTTON_WIDTH + PADDING * 2) + PADDING_HALF + BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
+                .pos(PADDING_HALF + (BUTTON_WIDTH + PADDING * 2) + PADDING_HALF + BUTTON_WIDTH / 4, height - PADDING_HALF - BUTTON_HEIGHT)
                 .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
                 .tooltip(Tooltip.create(Component.literal("Open Wiki to Placeholders")))
                 .build();
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent keyEvent) {
+        if(keyEvent.hasControlDown() && keyEvent.key() == GLFW.GLFW_KEY_S) {
+            if(this.save()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Tracker saved"),
+                        Component.literal(selectedTrackerId));
+            }
+            return true;
+        }
+        return super.keyPressed(keyEvent);
     }
 
     @Override

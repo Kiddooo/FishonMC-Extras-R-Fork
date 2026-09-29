@@ -44,6 +44,7 @@ public class GenericContainerScreenHandler extends Handler {
     public static final String STORAGE_SCREEN_CONTAINER = " ";
     public static final String GENERIC_SCREEN_CONTAINER = "\uEEE4\uD552";
     public static final String PRESETS_SCREEN_CONTAINER = "Presets\uEEE6\uEEE5\uD572";
+    public static final String TACKLE_BOX_SCREEN_CONTAINER = "Tacklebox\uEEE6\uEEE5\uEEE4\uEEE2핖";
     //endregion
 
     //region Methods
@@ -82,6 +83,13 @@ public class GenericContainerScreenHandler extends Handler {
             ScreenMouseEvents.afterMouseScroll(genericContainerScreen).register(PersonalVaultScreenRenderHandler.instance()::checkMouseScroll);
             ScreenMouseEvents.afterMouseClick(genericContainerScreen).register(PersonalVaultScreenRenderHandler.instance()::checkMouseClick);
             ScreenEvents.remove(genericContainerScreen).register(PersonalVaultScreenRenderHandler.instance()::onClose);
+        }
+
+        // Tackle Box Screen
+        else if(genericContainerScreen.getTitle().getString().startsWith(TACKLE_BOX_SCREEN_CONTAINER)) {
+            TackleBoxScreenRenderHandler.instance().init(genericContainerScreen);
+            ScreenMouseEvents.afterMouseClick(genericContainerScreen).register(TackleBoxScreenRenderHandler.instance()::checkMouseClick);
+            ScreenEvents.remove(genericContainerScreen).register(TackleBoxScreenRenderHandler.instance()::onClose);
         }
 
         // Any Container Screen
@@ -141,6 +149,9 @@ public class GenericContainerScreenHandler extends Handler {
                 ChestScreenRenderHandler.instance().render(screen, guiGraphics, mouseX, mouseY, tickDelta);
             } else if (Objects.equals(genericContainerScreen.getTitle().getString(), PRESETS_SCREEN_CONTAINER)) {
                 PresetsScreenRenderHandler.instance().renderButtonHelp(guiGraphics, true, true);
+            } else if(Objects.equals(genericContainerScreen.getTitle().getString(), TACKLE_BOX_SCREEN_CONTAINER)) {
+                TackleBoxScreenRenderHandler.instance().renderButtonHelp(guiGraphics, true, false);
+                TackleBoxScreenRenderHandler.instance().render(screen, guiGraphics, mouseX, mouseY, tickDelta);
             }
         }
     }

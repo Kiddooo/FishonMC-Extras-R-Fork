@@ -2,8 +2,10 @@ package dannypx.foe.handler.logic;
 
 import dannypx.foe.config.Configs;
 import dannypx.foe.handler.Handler;
+import dannypx.foe.handler.io.ChangelogFetcherHandler;
 import dannypx.foe.handler.store.CustomEventTriggerDataHandler;
 import dannypx.foe.handler.store.CustomTrackerDataHandler;
+import dannypx.foe.screens.ChangelogScreen;
 import dannypx.foe.type.event.EventTrigger;
 import dannypx.foe.type.tuple.Pair;
 import java.util.Map;
@@ -33,6 +35,11 @@ public class EventHandler extends Handler {
             //Update UI for missing HUD elements
             minecraft.options.hideGui = true;
             minecraft.options.hideGui = false;
+
+            if(ChangelogFetcherHandler.instance().isNeedsUpdate()) {
+                ChangelogFetcherHandler.instance().setNeedsUpdate(false);
+                minecraft.setScreen(new ChangelogScreen(null));
+            }
 
             this.sendEventTrigger(EventTrigger.ON_JOIN);
         }

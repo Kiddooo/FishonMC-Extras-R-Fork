@@ -11,6 +11,7 @@ import dannypx.foe.item.FishTagObject;
 import dannypx.foe.item.PetTagObject;
 import dannypx.foe.item.TagObject;
 import dannypx.foe.item.ValidateItem;
+import dannypx.foe.placeholder.evaluator.PlaceholderColorCodes;
 import dannypx.foe.placeholder.evaluator.PlaceholderEvaluationException;
 import dannypx.foe.placeholder.functions.PlaceholderValue;
 import dannypx.foe.type.custom_value.BooleanValue;
@@ -87,6 +88,9 @@ public class PlaceholderRegistry {
                         )
                         .branch(node("fps").valueNumber(PlayerContext::getFps)
                                 .description("Returns the screens FPS.")
+                        )
+                        .branch(node("is_fishing").valueBoolean(PlayerContext::isFishing)
+                                .description("Returns whether the player is fishing.")
                         )
         );
 
@@ -1001,6 +1005,15 @@ public class PlaceholderRegistry {
                 .description("Returns the value to numeric abbreviations like 1K (1.000), 1M (1.000.000), 1B (1.000.000.000), with up to 2 decimals.")
                 .param("value", DocTypeKind.NUMBER)
         );
+        register(node("apply_format").evalComponent(EvaluationContext::evalApplyFormat)
+                .description("Returns the value with the specified style")
+                .param("value", DocTypeKind.STRING, DocTypeKind.COMPONENT)
+                .param("style", DocTypeKind.STRING)
+        );
+        register(node("format").evalComponent(EvaluationContext::evalFormat)
+                .description("Returns the value with the format")
+                .param("value", DocTypeKind.STRING)
+        );
         register(node("remove_format").evalString(EvaluationContext::evalRemoveFormat)
                 .description("Returns the plain text of the specified value.")
                 .param("value", DocTypeKind.COMPONENT)
@@ -1130,6 +1143,10 @@ public class PlaceholderRegistry {
                 .description("Returns the type of the specified value.")
                 .param("value", DocTypeKind.VALUE)
         );
+        register(node("no_hide").evalValue(EvaluationContext::evalNoHide).allowEmpty()
+                .description("Returns the value, including blank values without hiding the line.")
+                .param("value", DocTypeKind.VALUE)
+        );
         register(node("hide_line").evalValue(EvaluationContext::evalHideLine).allowEmpty()
                 .description("Hides the full line if and only if the specified should_hide value is true.")
                 .param("should_hide", DocTypeKind.BOOLEAN)
@@ -1171,6 +1188,12 @@ public class PlaceholderRegistry {
 
     public static PlaceholderTreeNode getRoot(String key) {
         return ROOTS.get(key);
+    }
+
+    public static List<String> getRootNames() {
+        List<String> names = new ArrayList<>(ROOTS.keySet());
+        names.sort(String::compareTo);
+        return names;
     }
 
     //region Placeholder Contexts
@@ -1500,6 +1523,10 @@ public class PlaceholderRegistry {
 
         static Number getFps() {
             return Minecraft.getInstance().getFps();
+        }
+
+        static Boolean isFishing() {
+            return Minecraft.getInstance().player.fishing != null;
         }
     }
 
@@ -2296,8 +2323,8 @@ public class PlaceholderRegistry {
         }
 
         static MutableComponent getLastCaughtPetRatingIcon() {
-            if (!CatchingHandler.instance().getLastCaughtPet().getItemStack().isEmpty()) {
-                return CatchingHandler.instance().getLastCaughtPet().getRarityComponent().copy();
+            if(!CatchingHandler.instance().getLastCaughtPet().getItemStack().isEmpty()) {
+                return CatchingHandler.instance().getLastCaughtPet().getRatingComponent().copy();
             }
             return Component.empty();
         }
@@ -3255,6 +3282,24 @@ public class PlaceholderRegistry {
             return TextHelper.shortenNumber(number.floatValue(), 2);
         }
 
+        static MutableComponent evalApplyFormat(List<PlaceholderValue> args) {
+            if(args.size() != 2) {
+                throw new PlaceholderEvaluationException(
+                        "expects 2 arguments, got " + args.size()
+                );
+            };
+            return PlaceholderColorCodes.applyFormat(args.getFirst().toString(), args.get(1).toString());
+        }
+
+        static MutableComponent evalFormat(List<PlaceholderValue> args) {
+            if(args.size() != 1) {
+                throw new PlaceholderEvaluationException(
+                        "expects 1 argument, got " + args.size()
+                );
+            };
+            return PlaceholderColorCodes.applyFormat(args.getFirst().toString());
+        }
+
         static String evalRemoveFormat(List<PlaceholderValue> args) {
             if (args.size() != 1) {
                 throw new PlaceholderEvaluationException(
@@ -3396,6 +3441,15 @@ public class PlaceholderRegistry {
             else if (value.isBoolean()) return "boolean";
             else if (value.isNumber()) return "number";
             return "unknown";
+        }
+
+        static PlaceholderValue evalNoHide(List<PlaceholderValue> args) {
+            if(args.size() != 1) {
+                throw new PlaceholderEvaluationException(
+                        "expects 1 argument, got " + args.size()
+                );
+            };
+            return args.getFirst();
         }
 
         static PlaceholderValue evalHideLine(List<PlaceholderValue> args) {

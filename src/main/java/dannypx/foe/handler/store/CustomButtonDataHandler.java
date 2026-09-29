@@ -130,7 +130,7 @@ public class CustomButtonDataHandler extends Handler {
         needsUpdate = true;
     }
 
-    public void updateButton(String namespace, CustomButton customButton, String newName, String desc, String action, String icon, boolean showButton) {
+    public CustomButton updateButton(String namespace, CustomButton customButton, String newName, String desc, String action, String icon, boolean showButton) {
         Pair<List<CustomButton>, Boolean> buttonList = customButtonData.buttonList.getOrDefault(namespace, Pair.of(new ArrayList<>(), false));
         int index = buttonList.value1().indexOf(customButton);
         CustomButton updatedButton = buttonList.value1().get(index);
@@ -146,6 +146,8 @@ public class CustomButtonDataHandler extends Handler {
         customButtonData.buttonList.put(namespace, buttonList);
 
         needsUpdate = true;
+
+        return updatedButton;
     }
 
     public void updateButton(String namespace, boolean showButton) {

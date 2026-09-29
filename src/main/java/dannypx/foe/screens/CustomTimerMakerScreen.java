@@ -25,9 +25,11 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.CommonColors;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.glfw.GLFW;
 
 public class CustomTimerMakerScreen extends Screen implements ScreenConstants {
     //region Fields
@@ -447,6 +449,7 @@ public class CustomTimerMakerScreen extends Screen implements ScreenConstants {
         List<AbstractWidget> widgets = new ArrayList<>();
 
         widgets.add(this.saveBackButton());
+        widgets.add(this.saveButton());
         widgets.add(this.backButton());
 
         widgets.add(getButtonList());
@@ -923,110 +926,148 @@ public class CustomTimerMakerScreen extends Screen implements ScreenConstants {
 
     private Button saveBackButton() {
         return Button.builder(Component.literal("Save and Return"), button -> {
-            if(selectedTimerId != null) {
-                if(nameEditBox.getValue().isBlank()) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Timer name is empty"));
-
-                    return;
-                }
-
-                if(!Objects.equals(selectedTimerId, nameEditBox.getValue())
-                        && CustomTimerDataHandler.instance().getCustomTimerData().timerList.containsKey(nameEditBox.getValue())
-                ) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Timer name already exist"));
-
-                    return;
-                }
-
-                try {
-                    Integer.parseInt(timerEditBox.getValue());
-                } catch (NumberFormatException e) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Timer is not correct format"));
-
-                    LoggerHandler.error(e);
-
-                    return;
-                }
-
-                try {
-                    if(isPeriodCheckBox.selected()) {
-                        Integer.parseInt(offTimerEditBox.getValue());
-                    }
-                } catch (NumberFormatException e) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Off Timer is not correct format"));
-
-                    LoggerHandler.error(e);
-
-                    return;
-                }
-
-                try {
-                    Integer.parseInt(offsetEditBox.getValue());
-                } catch (NumberFormatException e) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Offset is not correct format"));
-
-                    LoggerHandler.error(e);
-
-                    return;
-                }
-
-                if(isPeriodCheckBox.selected()) {
-                    CustomTimerDataHandler.instance().updateTimer(selectedTimerId,
-                            nameEditBox.getValue(),
-                            Integer.parseInt(timerEditBox.getValue()),
-                            Integer.parseInt(offTimerEditBox.getValue()),
-                            Integer.parseInt(offsetEditBox.getValue()),
-                            notificationToTriggerEditBox.getValue(),
-                            notificationToTriggerEndEditBox.getValue(),
-                            chatNotificationToTriggerEditBox.getValue(),
-                            chatNotificationToTriggerEndEditBox.getValue(),
-                            trackerToTriggerEditBox.getValue(),
-                            trackerToTriggerEndEditBox.getValue(),
-                            cleanUpChatTriggersEditBox.getValue(),
-                            useTimerCheckBox.selected(),
-                            isPeriodCheckBox.selected());
-                } else {
-                    CustomTimerDataHandler.instance().updateTimer(selectedTimerId,
-                            nameEditBox.getValue(),
-                            Integer.parseInt(timerEditBox.getValue()),
-                            Integer.parseInt(offsetEditBox.getValue()),
-                            notificationToTriggerEditBox.getValue(),
-                            chatNotificationToTriggerEditBox.getValue(),
-                            trackerToTriggerEditBox.getValue(),
-                            cleanUpChatTriggersEditBox.getValue(),
-                            useTimerCheckBox.selected(),
-                            isPeriodCheckBox.selected());
-                }
-
-                TimerHandler.instance().initTimers();
+            if(this.save()) {
+                this.onClose();
             }
-                    this.onClose();
+        })
+        .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
+        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+        .build();
+    }
+
+    private boolean save() {
+        if(selectedTimerId != null) {
+            if(nameEditBox.getValue().isBlank()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Timer name is empty"));
+
+                return false;
+            }
+
+            if(!Objects.equals(selectedTimerId, nameEditBox.getValue())
+                    && CustomTimerDataHandler.instance().getCustomTimerData().timerList.containsKey(nameEditBox.getValue())
+            ) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Timer name already exist"));
+
+                return false;
+            }
+
+            try {
+                Integer.parseInt(timerEditBox.getValue());
+            } catch (NumberFormatException e) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Timer is not correct format"));
+
+                LoggerHandler.error(e);
+
+                return false;
+            }
+
+            try {
+                if(isPeriodCheckBox.selected()) {
+                    Integer.parseInt(offTimerEditBox.getValue());
+                }
+            } catch (NumberFormatException e) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Off Timer is not correct format"));
+
+                LoggerHandler.error(e);
+
+                return false;
+            }
+
+            try {
+                Integer.parseInt(offsetEditBox.getValue());
+            } catch (NumberFormatException e) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Offset is not correct format"));
+
+                LoggerHandler.error(e);
+
+                return false;
+            }
+
+
+            CustomTimerDataHandler.CustomTimer timer;
+            if(isPeriodCheckBox.selected()) {
+                timer = CustomTimerDataHandler.instance().updateTimer(selectedTimerId,
+                        nameEditBox.getValue(),
+                        Integer.parseInt(timerEditBox.getValue()),
+                        Integer.parseInt(offTimerEditBox.getValue()),
+                        Integer.parseInt(offsetEditBox.getValue()),
+                        notificationToTriggerEditBox.getValue(),
+                        notificationToTriggerEndEditBox.getValue(),
+                        chatNotificationToTriggerEditBox.getValue(),
+                        chatNotificationToTriggerEndEditBox.getValue(),
+                        trackerToTriggerEditBox.getValue(),
+                        trackerToTriggerEndEditBox.getValue(),
+                        cleanUpChatTriggersEditBox.getValue(),
+                        useTimerCheckBox.selected(),
+                        isPeriodCheckBox.selected());
+            } else {
+                timer = CustomTimerDataHandler.instance().updateTimer(selectedTimerId,
+                        nameEditBox.getValue(),
+                        Integer.parseInt(timerEditBox.getValue()),
+                        Integer.parseInt(offsetEditBox.getValue()),
+                        notificationToTriggerEditBox.getValue(),
+                        chatNotificationToTriggerEditBox.getValue(),
+                        trackerToTriggerEditBox.getValue(),
+                        cleanUpChatTriggersEditBox.getValue(),
+                        useTimerCheckBox.selected(),
+                        isPeriodCheckBox.selected());
+            }
+
+            ButtonListWidget.ButtonEntry entry = buttonEntryMap.remove(selectedTimerId);
+            int index = buttonList.entryAt(entry);
+            buttonList.removeEntry(entry);
+
+            selectedTimer = timer;
+            selectedTimerId = nameEditBox.getValue();
+            this.header = Component.literal(selectedTimerId);
+
+            ButtonListWidget.ButtonEntry buttonEntry = createTimerEntry(selectedTimerId);
+            buttonEntryMap.put(selectedTimerId, buttonEntry);
+            buttonList.addEntryAtPos(buttonEntry, index);
+            buttonList.setSelected(buttonEntry);
+
+            TimerHandler.instance().initTimers();
+
+            return true;
+        }
+        return false;
+    }
+
+    private Button saveButton() {
+        return Button.builder(Component.literal("Save"), button -> {
+                    if(this.save()) {
+                        SystemToast.add(this.minecraft.getToastManager(),
+                                SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                                Component.literal("Timer saved"),
+                                Component.literal(selectedTimerId));
+                    }
                 })
-                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4), height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.literal("Can also use Ctrl+S")))
                 .build();
     }
 
     private Button backButton() {
         return Button.builder(Component.literal("Return"), button ->
-                    this.onClose())
-                .pos(width - (PADDING_HALF + BUTTON_WIDTH / 2) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                        this.onClose())
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
                 .build();
     }
 
@@ -1162,6 +1203,20 @@ public class CustomTimerMakerScreen extends Screen implements ScreenConstants {
 
         selectedTimer = null;
         selectedTimerId = null;
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent keyEvent) {
+        if(keyEvent.hasControlDown() && keyEvent.key() == GLFW.GLFW_KEY_S) {
+            if(this.save()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Timer saved"),
+                        Component.literal(selectedTimerId));
+            }
+            return true;
+        }
+        return super.keyPressed(keyEvent);
     }
 
     @Override

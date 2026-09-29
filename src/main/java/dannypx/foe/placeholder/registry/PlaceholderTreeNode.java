@@ -291,6 +291,16 @@ public class PlaceholderTreeNode {
             return stringChild;
         }
 
+        if(stringArrayChild != null) {
+            captured.add(segment);
+            return stringArrayChild;
+        }
+
+        if(wildcardType == WildcardType.STRING_ARRAY) {
+            captured.add(segment);
+            return this;
+        }
+
         return null;
     }
 

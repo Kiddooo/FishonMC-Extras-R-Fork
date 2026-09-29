@@ -45,9 +45,6 @@ public class CommandRegistry {
                         .then(command("config").executes(Command.Foe::openConfig))
                         .then(command("main").executes(Command.Foe::openMainScreen))
                         .then(command("export_placeholder_data").executes(Command.Foe::exportPlaceholderData))
-                        .then(command("update")
-                                .then(command("0.3.8").then(command("confirm").executes(Command.Update::confirmV038)))
-                        )
                         .then(command("stats")
                                 .then(command("import").executes(Command.Stats::importStats))
                                 .then(command("cancel").executes(Command.Stats::cancelStats))
@@ -66,6 +63,7 @@ public class CommandRegistry {
                                 .then(command("timer").executes(Command.Reset::resetTimer))
                                 .then(command("hud").executes(Command.Reset::resetHud))
                                 .then(command("tracker").executes(Command.Reset::resetTracker))
+                                .then(command("snippet").executes(Command.Reset::resetSnippet))
                         )
                         .then(command("fix_defaults")
                                 .then(command("chat_trigger").executes(Command.Fix::fixChatTrigger))
@@ -75,6 +73,7 @@ public class CommandRegistry {
                                 .then(command("timer").executes(Command.Fix::fixTimer))
                                 .then(command("hud").executes(Command.Fix::fixHud))
                                 .then(command("tracker").executes(Command.Fix::fixTracker))
+                                .then(command("snippet").executes(Command.Fix::fixSnippet))
                         )
                         .then(command("toggle")
                                 .then(command("render")
@@ -206,12 +205,6 @@ public class CommandRegistry {
             }
         }
 
-        static class Update {
-            public static int confirmV038(CommandContext<FabricClientCommandSource> context) {
-                return executeCommand(() -> NotifierHandler.instance().removeNotification(UpdateHandler.V_0_3_8_KEY));
-            }
-        }
-
         static class Stats {
             public static int importStats(CommandContext<FabricClientCommandSource> context) {
                 StatsScreenHandler.instance().setImportStats(true);
@@ -287,6 +280,10 @@ public class CommandRegistry {
             public static int resetTracker(CommandContext<FabricClientCommandSource> context) {
                 return executeCommand(context, Component.literal("Reset trackers to default config").withStyle(ChatFormatting.GREEN), () -> CustomTrackerDataHandler.instance().resetTrackers());
             }
+
+            public static int resetSnippet(CommandContext<FabricClientCommandSource> context) {
+                return executeCommand(context, Component.literal("Reset snippets to default config").withStyle(ChatFormatting.GREEN), () -> CustomSnippetDataHandler.instance().resetSnippets());
+            }
         }
 
         static class Fix {
@@ -326,6 +323,10 @@ public class CommandRegistry {
 
             public static int fixTracker(CommandContext<FabricClientCommandSource> context) {
                 return executeCommand(context, Component.literal("Fixed default trackers").withStyle(ChatFormatting.GREEN), () -> CustomTrackerDataHandler.instance().fixDefault());
+            }
+
+            public static int fixSnippet(CommandContext<FabricClientCommandSource> context) {
+                return executeCommand(context, Component.literal("Fixed default snippets").withStyle(ChatFormatting.GREEN), () -> CustomSnippetDataHandler.instance().fixDefault());
             }
         }
 

@@ -3,6 +3,7 @@ package dannypx.foe;
 import dannypx.foe.command.CommandRegistry;
 import dannypx.foe.entity.FishingHookEntityModel;
 import dannypx.foe.handler.fetch.*;
+import dannypx.foe.handler.io.ChangelogFetcherHandler;
 import dannypx.foe.handler.logic.*;
 import dannypx.foe.handler.renderer.*;
 import dannypx.foe.handler.store.*;
@@ -48,10 +49,8 @@ public class FishOnMCExtrasClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register(this::onLeave);
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndClientTick);
         ClientReceiveMessageEvents.GAME.register(this::receiveGameMessage);
-        ClientReceiveMessageEvents.MODIFY_GAME.register(this::modifyGameMessage);
         ClientSendMessageEvents.MODIFY_CHAT.register(this::modifyChatMessage);
         ScreenEvents.AFTER_INIT.register(this::onAfterInitScreen);
-        UseItemCallback.EVENT.register(this::onUseItem);
         ItemTooltipCallback.EVENT.register(this::onItemTooltip);
 
         this.initHudRenderer();
@@ -73,16 +72,8 @@ public class FishOnMCExtrasClient implements ClientModInitializer {
         ChatHandler.instance().onReceiveMessage(message, overlay);
     }
 
-    private Component modifyGameMessage(Component message, boolean over) {
-        return ChatHandler.instance().onModifyGameMessage(message);
-    }
-
     private String modifyChatMessage(String text) {
         return ChatHandler.instance().onModifyChatMessage(text);
-    }
-
-    private InteractionResult onUseItem(Player player, Level level, InteractionHand hand) {
-        return InteractionResult.PASS;
     }
 
     private void onAfterInitScreen(Minecraft minecraft, Screen screen, int scaledWidth, int scaledHeight) {
@@ -98,6 +89,7 @@ public class FishOnMCExtrasClient implements ClientModInitializer {
         CodeExecuterHandler.instance().init();
         CommandRegistry.init();
         PlaceholderHandlerV2.instance().init();
+        ChangelogFetcherHandler.instance().fetch(false);
     }
 
     private void onLeave(ClientPacketListener clientPacketListener, Minecraft minecraft) {
@@ -125,6 +117,7 @@ public class FishOnMCExtrasClient implements ClientModInitializer {
             CustomTimerDataHandler.instance().init();
             CustomEventTriggerDataHandler.instance().init();
             CustomTrackerDataHandler.instance().init();
+            CustomSnippetDataHandler.instance().init();
 
             ScoreboardHandler.instance().init();
             CrewHandler.instance().init();

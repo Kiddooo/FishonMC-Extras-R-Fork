@@ -90,6 +90,10 @@ public class ButtonListWidget extends AbstractSelectionList<ButtonListWidget.@No
         ((AbstractSelectionListAccessor) this).callRepositionEntries();
     }
 
+    public int entryAt(ButtonEntry entry) {
+        return ((AbstractSelectionListAccessor) this).getChildren().indexOf(entry);
+    }
+
     @Override
     public void removeEntry(ButtonEntry entry) {
         super.removeEntry(entry);

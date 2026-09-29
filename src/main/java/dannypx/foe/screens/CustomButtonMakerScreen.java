@@ -22,9 +22,11 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.CommonColors;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.glfw.GLFW;
 
 public class CustomButtonMakerScreen extends Screen implements ScreenConstants {
     //region Fields
@@ -153,6 +155,7 @@ public class CustomButtonMakerScreen extends Screen implements ScreenConstants {
         List<AbstractWidget> widgets = new ArrayList<>();
 
         widgets.add(this.saveBackButton());
+        widgets.add(this.saveButton());
         widgets.add(this.backButton());
 
         widgets.add(getButtonList());
@@ -421,65 +424,101 @@ public class CustomButtonMakerScreen extends Screen implements ScreenConstants {
 
     private Button saveBackButton() {
         return Button.builder(Component.literal("Save and Return"), button -> {
-            if(selectedButtonId != null) {
-                if(nameEditBox.getValue().isBlank()) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Button name is empty"));
-
-                    return;
-                }
-
-                if(CustomButtonDataHandler.instance().getCustomButtonData().buttonList.getOrDefault(screenId, Pair.of(new ArrayList<>(), false)).value1().stream().anyMatch(b -> Objects.equals(b.name, nameEditBox.getValue()))
-                        && !Objects.equals(selectedButton.name, nameEditBox.getValue())
-                ) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Button name already exist"));
-
-                    return;
-                }
-
-                if(!actionEditBox.getValue().startsWith("/")) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Command must start with /"));
-
-                    return;
-                }
-
-                Pattern iconPattern = Pattern.compile("^(?:([a-z_]+:[a-z_]+)(?:\\[(.*)\\])?|(.))$");
-                if(!iconPattern.matcher(iconEditBox.getValue()).matches()) {
-                    SystemToast.add(this.minecraft.getToastManager(),
-                            SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                            Component.literal("Fish On Extras Rebirth"),
-                            Component.literal("Icon is not right format"));
-
-                    return;
-                }
-
-                CustomButtonDataHandler.instance().updateButton(screenId, selectedButton,
-                        nameEditBox.getValue(),
-                        descriptionEditBox.getValue(),
-                        actionEditBox.getValue(),
-                        iconEditBox.getValue(),
-                        showButtonCheckBox.selected());
+            if(this.save()) {
+                this.onClose();
             }
-                    this.onClose();
-                })
-                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
-                .build();
+        })
+        .pos(width - PADDING_HALF - BUTTON_WIDTH / 2, height - PADDING_HALF - BUTTON_HEIGHT)
+        .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+        .build();
+    }
+
+    private boolean save() {
+        if(selectedButtonId != null) {
+            if(nameEditBox.getValue().isBlank()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Button name is empty"));
+
+                return false;
+            }
+
+            if(CustomButtonDataHandler.instance().getCustomButtonData().buttonList.getOrDefault(screenId, Pair.of(new ArrayList<>(), false)).value1().stream().anyMatch(b -> Objects.equals(b.name, nameEditBox.getValue()))
+                    && !Objects.equals(selectedButton.name, nameEditBox.getValue())
+            ) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Button name already exist"));
+
+                return false;
+            }
+
+            if(!actionEditBox.getValue().startsWith("/")) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Command must start with /"));
+
+                return false;
+            }
+
+            Pattern iconPattern = Pattern.compile("^(?:([a-z_]+:[a-z_]+)(?:\\[(.*)\\])?|(.))$");
+            if(!iconPattern.matcher(iconEditBox.getValue()).matches()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Fish On Extras Rebirth"),
+                        Component.literal("Icon is not right format"));
+
+                return false;
+            }
+
+            CustomButtonDataHandler.CustomButton button = CustomButtonDataHandler.instance().updateButton(screenId, selectedButton,
+                    nameEditBox.getValue(),
+                    descriptionEditBox.getValue(),
+                    actionEditBox.getValue(),
+                    iconEditBox.getValue(),
+                    showButtonCheckBox.selected());
+
+            ButtonListWidget.ButtonEntry entry = buttonEntryMap.remove(selectedButtonId);
+            int index = buttonList.entryAt(entry);
+            buttonList.removeEntry(entry);
+
+            selectedButton = button;
+            selectedButtonId = nameEditBox.getValue();
+            this.header = Component.literal(selectedButtonId);
+
+            ButtonListWidget.ButtonEntry buttonEntry = createButtonEntry(selectedButtonId);
+            buttonEntryMap.put(selectedButtonId, buttonEntry);
+            buttonList.addEntryAtPos(buttonEntry, index);
+            buttonList.setSelected(buttonEntry);
+
+            return true;
+        }
+        return false;
+    }
+
+    private Button saveButton() {
+        return Button.builder(Component.literal("Save"), button -> {
+            if(this.save()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Button saved"),
+                        Component.literal(selectedButtonId));
+            }
+        })
+        .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4), height - PADDING_HALF - BUTTON_HEIGHT)
+        .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
+        .tooltip(Tooltip.create(Component.literal("Can also use Ctrl+S")))
+        .build();
     }
 
     private Button backButton() {
         return Button.builder(Component.literal("Return"), button ->
                     this.onClose())
-                .pos(width - (PADDING_HALF + BUTTON_WIDTH / 2) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
-                .size(BUTTON_WIDTH / 2, BUTTON_HEIGHT)
+                .pos(width - PADDING_HALF - BUTTON_WIDTH / 2 - (PADDING_HALF + BUTTON_WIDTH / 4) * 2, height - PADDING_HALF - BUTTON_HEIGHT)
+                .size(BUTTON_WIDTH / 4, BUTTON_HEIGHT)
                 .build();
     }
 
@@ -586,6 +625,20 @@ public class CustomButtonMakerScreen extends Screen implements ScreenConstants {
 
         selectedButton = null;
         selectedButtonId = null;
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent keyEvent) {
+        if(keyEvent.hasControlDown() && keyEvent.key() == GLFW.GLFW_KEY_S) {
+            if(this.save()) {
+                SystemToast.add(this.minecraft.getToastManager(),
+                        SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+                        Component.literal("Button saved"),
+                        Component.literal(selectedButtonId));
+            }
+            return true;
+        }
+        return super.keyPressed(keyEvent);
     }
 
     @Override

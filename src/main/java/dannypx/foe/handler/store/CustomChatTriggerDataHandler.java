@@ -77,7 +77,7 @@ public class CustomChatTriggerDataHandler extends Handler {
         return customChatTriggerData.chatTriggerList.remove(id);
     }
 
-    public void updateChatTrigger(String currentSelectedChatTrigger,
+    public CustomChatTrigger updateChatTrigger(String currentSelectedChatTrigger,
                                   String newName,
                                   String regex,
                                   String notificationToTrigger,
@@ -102,6 +102,8 @@ public class CustomChatTriggerDataHandler extends Handler {
 
         customChatTriggerData.chatTriggerList.put(currentSelectedChatTrigger, newChatTrigger);
         needsUpdate = true;
+
+        return newChatTrigger;
     }
 
     public void updateDefault() {

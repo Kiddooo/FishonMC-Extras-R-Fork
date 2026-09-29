@@ -2,6 +2,7 @@ package dannypx.foe.screens.widget;
 
 import dannypx.foe.handler.logic.CodeExecuterHandler;
 import dannypx.foe.handler.store.CustomTrackerDataHandler;
+import dannypx.foe.placeholder.editbox.PlaceholderEditBox;
 import dannypx.foe.screens.interfaces.ScreenConstants;
 import dannypx.foe.type.custom_value.*;
 import dannypx.foe.type.tracker.TrackerAction;
@@ -497,8 +498,8 @@ public class EditCustomTrackerWidget extends AbstractWidget implements ScreenCon
 
         private final EditBox actionIdEditBoxWidget;
         private final EditBox trackerActionEditBoxWidget;
-        private final EditBox conditionEditBoxWidget;
-        private final EditBox valueToUseEditBoxWidget;
+        private final PlaceholderEditBox conditionEditBoxWidget;
+        private final PlaceholderEditBox valueToUseEditBoxWidget;
         private final Button addButton;
         private final Button deleteButton;
 
@@ -587,7 +588,7 @@ public class EditCustomTrackerWidget extends AbstractWidget implements ScreenCon
                 trackerActionEditBoxWidget.setSuggestion(null);
             });
 
-            conditionEditBoxWidget = new EditBox(
+            conditionEditBoxWidget = new PlaceholderEditBox(
                     minecraftClient.font,
                     0, 0,
                     0, 20,
@@ -606,7 +607,7 @@ public class EditCustomTrackerWidget extends AbstractWidget implements ScreenCon
                 conditionEditBoxWidget.setHint(Component.literal(s));
             });
 
-            valueToUseEditBoxWidget = new EditBox(
+            valueToUseEditBoxWidget = new PlaceholderEditBox(
                     minecraftClient.font,
                     0, 0,
                     0, 20,
