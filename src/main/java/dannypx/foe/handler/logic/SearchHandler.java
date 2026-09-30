@@ -287,13 +287,14 @@ public class SearchHandler extends Handler {
                 if(searchFilter.key.equalsIgnoreCase("tooltip")) {
                     if(searchFilter.operator == Operator.EQUAL || searchFilter.operator == Operator.SHORT_EQUAL) {
                         if(itemStack.get(DataComponents.LORE) != null) {
-                            List<Component> loreLines = itemStack.get(DataComponents.LORE).lines();
-                            AtomicBoolean doesContain = new AtomicBoolean(false);
-                            loreLines.forEach(line -> {
-                                String convertedString = TextHelper.normalLetter(line.getString());
-                                if(convertedString.toLowerCase(Locale.US).contains(stringValue.value().toLowerCase(Locale.US))) doesContain.set(true);
-                            });
-                            yield doesContain.get();
+                            String query = stringValue.value().toLowerCase(Locale.US);
+                            for (Component line : itemStack.get(DataComponents.LORE).lines()) {
+                                String text = TextHelper.normalLetter(line.getString()).toLowerCase(Locale.US);
+                                if (TooltipSearch.containsAny(text, query)) {
+                                    yield true;
+                                }
+                            }
+                            yield false;
                         } else {
                             yield false;
                         }
